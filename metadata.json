@@ -1,0 +1,6 @@
+{
+  "name": "Trailo Influencer Campaign Manager",
+  "description": "An operational web application and CRM to model, negotiate, manage, and track influencer marketing and native video campaigns for the Trailo AI travel app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
