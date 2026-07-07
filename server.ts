@@ -9,10 +9,17 @@ import {
   proxyAvatarImage,
 } from "./server/avatar";
 import { fetchInstagramAvgViews } from "./server/instagram";
+import { ensureSupabaseSchema } from "./server/db-setup";
 
 dotenv.config();
 
 async function startServer() {
+  try {
+    await ensureSupabaseSchema();
+  } catch (error) {
+    console.warn("Supabase schema setup skipped:", error instanceof Error ? error.message : error);
+  }
+
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 

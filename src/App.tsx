@@ -10,11 +10,23 @@ import {
   ArrowUpDown,
   Download,
   Upload,
+  LogOut,
 } from "lucide-react";
 
 import { Creator, PaymentLog, CreatorStatus, Platform, PlatformProfile } from "./types";
 import { INITIAL_CREATORS, INITIAL_PAYMENTS } from "./data";
 import { downloadExport, readImportFile } from "./dataTransfer";
+import {
+  deleteCreator as deleteCreatorRow,
+  deletePayment as deletePaymentRow,
+  insertCreator,
+  insertPayment,
+  loadTrailoData,
+  replaceAllData,
+  updateCreator,
+} from "./lib/database";
+import { loadAppDataOnce } from "./lib/initialLoad";
+import { useAuth } from "./lib/auth";
 import { CREATOR_SORT_OPTIONS, CreatorSortKey, creatorHasPlatform, creatorMaxAvgViews, normalizeCreator, sortCreators, STATUS_OPTIONS } from "./utils";
 
 import StatsBar from "./components/StatsBar";
@@ -24,12 +36,14 @@ import PaymentModal from "./components/PaymentModal";
 import CreatorDetailDrawer from "./components/CreatorDetailDrawer";
 import PaymentsView from "./components/PaymentsView";
 import DealCalculator from "./components/DealCalculator";
+import LoginPage from "./components/LoginPage";
 
 type Tab = "creators" | "payments";
 
 const PLATFORMS = ["All", "TikTok", "Instagram", "YouTube"] as const;
 
 export default function App() {
+  const { session, loading: authLoading, signOut } = useAuth();
   const [creators, setCreators] = useState<Creator[]>([]);
   const [payments, setPayments] = useState<PaymentLog[]>([]);
 
@@ -45,30 +59,86 @@ export default function App() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedCreators = localStorage.getItem("trailo_clean_v1_creators");
-    const savedPayments = localStorage.getItem("trailo_clean_v1_payments");
-
-    if (savedCreators && savedPayments) {
-      setCreators(JSON.parse(savedCreators).map(normalizeCreator));
-      setPayments(JSON.parse(savedPayments));
-    } else {
-      setCreators(INITIAL_CREATORS);
-      setPayments(INITIAL_PAYMENTS);
-      localStorage.setItem("trailo_clean_v1_creators", JSON.stringify(INITIAL_CREATORS));
-      localStorage.setItem("trailo_clean_v1_payments", JSON.stringify(INITIAL_PAYMENTS));
+    if (!session) {
+      setCreators([]);
+      setPayments([]);
+      setLoading(false);
+      setLoadError(null);
+      return;
     }
-  }, []);
 
-  const syncCreators = (updated: Creator[]) => {
-    setCreators(updated);
-    localStorage.setItem("trailo_clean_v1_creators", JSON.stringify(updated));
-  };
+    let cancelled = false;
 
-  const syncPayments = (updated: PaymentLog[]) => {
-    setPayments(updated);
-    localStorage.setItem("trailo_clean_v1_payments", JSON.stringify(updated));
+    async function load() {
+      setLoading(true);
+      setLoadError(null);
+
+      try {
+        const { creators: loadedCreators, payments: loadedPayments } = await loadAppDataOnce(
+          async () => {
+            let { creators, payments } = await loadTrailoData();
+
+            const localCreators = localStorage.getItem("trailo_clean_v1_creators");
+            const localPayments = localStorage.getItem("trailo_clean_v1_payments");
+
+            if (
+              creators.length === 0 &&
+              payments.length === 0 &&
+              localCreators &&
+              localPayments
+            ) {
+              const migratedCreators = JSON.parse(localCreators).map(normalizeCreator);
+              const migratedPayments = JSON.parse(localPayments) as PaymentLog[];
+              await replaceAllData(migratedCreators, migratedPayments);
+              creators = migratedCreators;
+              payments = migratedPayments;
+              localStorage.removeItem("trailo_clean_v1_creators");
+              localStorage.removeItem("trailo_clean_v1_payments");
+            } else if (creators.length === 0 && payments.length === 0) {
+              await replaceAllData(INITIAL_CREATORS, INITIAL_PAYMENTS);
+              creators = INITIAL_CREATORS;
+              payments = INITIAL_PAYMENTS;
+            }
+
+            return { creators, payments };
+          }
+        );
+
+        if (!cancelled) {
+          setCreators(loadedCreators);
+          setPayments(loadedPayments);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(error instanceof Error ? error.message : "Could not load data from Supabase.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user.id]);
+
+  const runSynced = async (action: () => Promise<void>, rollback: () => void) => {
+    setSyncing(true);
+    setLoadError(null);
+    try {
+      await action();
+    } catch (error) {
+      rollback();
+      setLoadError(error instanceof Error ? error.message : "Could not save changes to Supabase.");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const creatorsWithMetrics = creators.map((creator) => {
@@ -86,24 +156,48 @@ export default function App() {
     notes: string;
   }) => {
     const created: Creator = {
-      id: "creator_" + Date.now(),
+      id: `creator_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       ...profile,
       moneySpent: 0,
       videosPosted: 0,
       totalViewsGenerated: 0,
     };
-    syncCreators([created, ...creators]);
+    const previous = creators;
+    setCreators([created, ...creators]);
+    void runSynced(
+      () => insertCreator(created),
+      () => setCreators(previous)
+    );
   };
 
   const handleUpdateCreator = (updated: Creator) => {
-    syncCreators(creators.map((c) => (c.id === updated.id ? updated : c)));
+    const previous = creators;
+    setCreators(creators.map((c) => (c.id === updated.id ? updated : c)));
     if (selectedCreator?.id === updated.id) setSelectedCreator(updated);
+    void runSynced(
+      () => updateCreator(updated),
+      () => {
+        setCreators(previous);
+        if (selectedCreator?.id === updated.id) {
+          setSelectedCreator(previous.find((c) => c.id === updated.id) ?? null);
+        }
+      }
+    );
   };
 
   const handleDeleteCreator = (id: string) => {
-    syncCreators(creators.filter((c) => c.id !== id));
-    syncPayments(payments.filter((p) => p.creatorId !== id));
+    const previousCreators = creators;
+    const previousPayments = payments;
+    setCreators(creators.filter((c) => c.id !== id));
+    setPayments(payments.filter((p) => p.creatorId !== id));
     setSelectedCreator(null);
+    void runSynced(
+      () => deleteCreatorRow(id),
+      () => {
+        setCreators(previousCreators);
+        setPayments(previousPayments);
+      }
+    );
   };
 
   const handleLogPayment = (data: {
@@ -116,15 +210,25 @@ export default function App() {
     const matched = creators.find((c) => c.id === data.creatorId);
     if (!matched) return;
     const logged: PaymentLog = {
-      id: "pay_" + Date.now(),
+      id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       creatorName: matched.name,
       ...data,
     };
-    syncPayments([logged, ...payments]);
+    const previous = payments;
+    setPayments([logged, ...payments]);
+    void runSynced(
+      () => insertPayment(logged),
+      () => setPayments(previous)
+    );
   };
 
   const handleDeletePayment = (id: string) => {
-    syncPayments(payments.filter((p) => p.id !== id));
+    const previous = payments;
+    setPayments(payments.filter((p) => p.id !== id));
+    void runSynced(
+      () => deletePaymentRow(id),
+      () => setPayments(previous)
+    );
   };
 
   const openPayment = (creatorId?: string) => {
@@ -148,9 +252,18 @@ export default function App() {
       );
       if (!confirmed) return;
 
-      syncCreators(importedCreators);
-      syncPayments(importedPayments);
+      const previousCreators = creators;
+      const previousPayments = payments;
+      setCreators(importedCreators);
+      setPayments(importedPayments);
       setSelectedCreator(null);
+      await runSynced(
+        () => replaceAllData(importedCreators, importedPayments),
+        () => {
+          setCreators(previousCreators);
+          setPayments(previousPayments);
+        }
+      );
     } catch (error) {
       alert(error instanceof Error ? error.message : "Could not import file.");
     } finally {
@@ -181,8 +294,25 @@ export default function App() {
     ? creatorsWithMetrics.find((c) => c.id === selectedCreator.id) ?? selectedCreator
     : null;
 
+  if (authLoading) {
+    return (
+      <div className="min-h-dvh bg-stone-50 flex items-center justify-center">
+        <p className="text-sm text-stone-500">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="min-h-dvh bg-stone-50 text-stone-900 flex flex-col">
+      {loadError && (
+        <div className="bg-rose-50 border-b border-rose-200 px-4 py-2 text-xs text-rose-800 text-center">
+          {loadError}
+        </div>
+      )}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200/80">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -198,6 +328,13 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => void signOut()}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
+            </button>
             <button
               onClick={() => setShowCalculator(true)}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
@@ -224,6 +361,12 @@ export default function App() {
       </header>
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 space-y-5">
+        {loading ? (
+          <div className="bg-white rounded-xl ring-1 ring-stone-200/80 px-6 py-16 text-center">
+            <p className="text-sm font-medium text-stone-700">Loading from Supabase…</p>
+          </div>
+        ) : (
+          <>
         <StatsBar creators={creatorsWithMetrics} payments={payments} />
 
         <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg w-fit">
@@ -362,11 +505,15 @@ export default function App() {
         ) : (
           <PaymentsView payments={payments} onDelete={handleDeletePayment} />
         )}
+          </>
+        )}
       </main>
 
       <footer className="border-t border-stone-200/80 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-[11px] text-stone-400">Data saved locally in your browser</p>
+          <p className="text-[11px] text-stone-400">
+            {syncing ? "Syncing…" : `Signed in as ${session.user.email}`}
+          </p>
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handleExport}
@@ -385,9 +532,18 @@ export default function App() {
             <button
               onClick={() => {
                 if (confirm("Reset all data to demo creators and payments?")) {
-                  syncCreators(INITIAL_CREATORS);
-                  syncPayments(INITIAL_PAYMENTS);
+                  const previousCreators = creators;
+                  const previousPayments = payments;
+                  setCreators(INITIAL_CREATORS);
+                  setPayments(INITIAL_PAYMENTS);
                   setSelectedCreator(null);
+                  void runSynced(
+                    () => replaceAllData(INITIAL_CREATORS, INITIAL_PAYMENTS),
+                    () => {
+                      setCreators(previousCreators);
+                      setPayments(previousPayments);
+                    }
+                  );
                 }
               }}
               className="flex items-center gap-1 text-[11px] text-stone-400 hover:text-stone-600 transition-colors"
