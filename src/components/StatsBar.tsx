@@ -24,18 +24,18 @@ export default function StatsBar({ creators, payments }: StatsBarProps) {
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="bg-white rounded-xl px-4 py-3.5 ring-1 ring-stone-200/80"
+          className="bg-white dark:bg-stone-900 rounded-xl px-4 py-3.5 ring-1 ring-stone-200/80 dark:ring-stone-800"
         >
-          <p className="text-xs text-stone-500 font-medium">{stat.label}</p>
+          <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">{stat.label}</p>
           <p
             className={`mt-0.5 text-xl font-semibold tracking-tight tabular-nums font-mono ${
-              stat.highlight ? "text-teal-700" : "text-stone-900"
+              stat.highlight ? "text-teal-700 dark:text-teal-400" : "text-stone-900 dark:text-stone-100"
             }`}
           >
             {stat.value}
           </p>
           {stat.sub && (
-            <p className="text-[11px] text-stone-400 mt-0.5">{stat.sub}</p>
+            <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-0.5">{stat.sub}</p>
           )}
         </div>
       ))}

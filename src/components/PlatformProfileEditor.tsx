@@ -19,14 +19,14 @@ export default function PlatformProfileEditor({
   };
 
   return (
-    <div className="rounded-xl ring-1 ring-stone-200 bg-stone-50/50 p-3.5 space-y-3">
+    <div className="rounded-xl ring-1 ring-stone-200 dark:ring-stone-700 bg-stone-50/50 dark:bg-stone-800/50 p-3.5 space-y-3">
       <div className="flex items-center gap-2">
         <PlatformIcon platform={profile.platform} size="sm" />
-        <h3 className="text-sm font-semibold text-stone-900">{profile.platform}</h3>
+        <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{profile.platform}</h3>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-stone-600 mb-1">Handle</label>
+        <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Handle</label>
         <input
           type="text"
           required
@@ -39,7 +39,7 @@ export default function PlatformProfileEditor({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-stone-600 mb-1">Followers (K)</label>
+          <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Followers (K)</label>
           <input
             type="number"
             placeholder="450"
@@ -59,7 +59,7 @@ export default function PlatformProfileEditor({
               onApply={(avg) => update({ avgViews: avg })}
             />
           )}
-          <label className="block text-xs font-medium text-stone-600 mb-1">Avg views</label>
+          <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Avg views</label>
           <input
             type="number"
             placeholder="120000"

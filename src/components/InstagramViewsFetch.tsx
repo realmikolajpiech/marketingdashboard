@@ -59,7 +59,7 @@ export default function InstagramViewsFetch({
         type="button"
         onClick={fetchViews}
         disabled={loading}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-700 hover:text-teal-800 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 disabled:opacity-50"
       >
         {loading ? (
           <Loader2 className="w-3 h-3 animate-spin" />
@@ -71,7 +71,7 @@ export default function InstagramViewsFetch({
       {feedback && (
         <p
           className={`text-[11px] leading-relaxed ${
-            feedback.type === "success" ? "text-teal-700" : "text-stone-500"
+            feedback.type === "success" ? "text-teal-700 dark:text-teal-400" : "text-stone-500 dark:text-stone-400"
           }`}
         >
           {feedback.text}

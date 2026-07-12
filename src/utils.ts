@@ -15,10 +15,10 @@ export function calcCPM(spent: number, views: number): number {
 }
 
 export function cpmLabel(cpm: number): { text: string; className: string } {
-  if (cpm === 0) return { text: "No data", className: "text-stone-400" };
-  if (cpm <= 5) return { text: "Good deal", className: "text-teal-700" };
-  if (cpm <= 8) return { text: "Fair", className: "text-amber-700" };
-  return { text: "Expensive", className: "text-rose-700" };
+  if (cpm === 0) return { text: "No data", className: "text-stone-400 dark:text-stone-500" };
+  if (cpm <= 5) return { text: "Good deal", className: "text-teal-700 dark:text-teal-400" };
+  if (cpm <= 8) return { text: "Fair", className: "text-amber-700 dark:text-amber-400" };
+  return { text: "Expensive", className: "text-rose-700 dark:text-rose-400" };
 }
 
 export const STATUS_OPTIONS: { value: CreatorStatus | "All"; label: string }[] = [
@@ -38,22 +38,22 @@ export const CREATOR_STATUS_OPTIONS = STATUS_OPTIONS.filter(
 
 export function statusStyle(status: CreatorStatus): string {
   const map: Record<CreatorStatus, string> = {
-    Active: "bg-teal-50 text-teal-800 ring-teal-200",
-    Negotiating: "bg-amber-50 text-amber-800 ring-amber-200",
-    Contacted: "bg-sky-50 text-sky-800 ring-sky-200",
-    "Followed Up Contact": "bg-indigo-50 text-indigo-800 ring-indigo-200",
-    Selected: "bg-stone-100 text-stone-600 ring-stone-200",
-    Completed: "bg-violet-50 text-violet-800 ring-violet-200",
-    Rejected: "bg-rose-50 text-rose-700 ring-rose-200",
+    Active: "bg-teal-50 text-teal-800 ring-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:ring-teal-800",
+    Negotiating: "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:ring-amber-800",
+    Contacted: "bg-sky-50 text-sky-800 ring-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:ring-sky-800",
+    "Followed Up Contact": "bg-indigo-50 text-indigo-800 ring-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800",
+    Selected: "bg-stone-100 text-stone-600 ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700",
+    Completed: "bg-violet-50 text-violet-800 ring-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:ring-violet-800",
+    Rejected: "bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:ring-rose-800",
   };
   return map[status];
 }
 
 export function platformStyle(platform: Platform): string {
   const map: Record<Platform, string> = {
-    TikTok: "bg-stone-900 text-white ring-stone-900",
-    Instagram: "bg-pink-50 text-pink-800 ring-pink-200",
-    YouTube: "bg-red-50 text-red-800 ring-red-200",
+    TikTok: "bg-stone-900 text-white ring-stone-900 dark:bg-stone-100 dark:text-stone-900 dark:ring-stone-100",
+    Instagram: "bg-pink-50 text-pink-800 ring-pink-200 dark:bg-pink-950/50 dark:text-pink-300 dark:ring-pink-800",
+    YouTube: "bg-red-50 text-red-800 ring-red-200 dark:bg-red-950/50 dark:text-red-300 dark:ring-red-800",
   };
   return map[platform];
 }
