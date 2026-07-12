@@ -11,6 +11,7 @@ import {
   Download,
   Upload,
   LogOut,
+  RefreshCw,
 } from "lucide-react";
 
 import { Creator, PaymentLog, CreatorStatus, Platform, PlatformProfile } from "./types";
@@ -63,6 +64,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [avatarBackfillStatus, setAvatarBackfillStatus] = useState<string | null>(null);
+  const [backfillingAvatars, setBackfillingAvatars] = useState(false);
 
   useEffect(() => {
     if (!session) {
@@ -150,9 +153,9 @@ export default function App() {
     return { ...creator, moneySpent, videosPosted, totalViewsGenerated };
   });
 
-  const syncCreatorAvatar = async (creator: Creator) => {
+  const syncCreatorAvatar = async (creator: Creator): Promise<boolean> => {
     const avatarUrl = await persistCreatorAvatar(creator.id, creator.platformProfiles);
-    if (!avatarUrl || avatarUrl === creator.avatarUrl) return;
+    if (!avatarUrl || avatarUrl === creator.avatarUrl) return false;
 
     setCreators((current) => current.map((c) => (c.id === creator.id ? { ...c, avatarUrl } : c)));
     setSelectedCreator((current) => (current?.id === creator.id ? { ...current, avatarUrl } : current));
@@ -162,6 +165,43 @@ export default function App() {
     } catch {
       // Best-effort background sync; avatar will retry on the next edit.
     }
+    return true;
+  };
+
+  // Sequential with a delay between each request — Instagram/TikTok rate-limit
+  // or block bursts of unauthenticated requests from the same server IP.
+  const AVATAR_BACKFILL_DELAY_MS = 3000;
+
+  const handleBackfillAvatars = async () => {
+    if (backfillingAvatars) return;
+    const targets = creators.filter(
+      (creator) => avatarSourceKey(creator.platformProfiles) && !creator.avatarUrl
+    );
+    if (targets.length === 0) {
+      setAvatarBackfillStatus("All avatars are already up to date.");
+      setTimeout(() => setAvatarBackfillStatus(null), 4000);
+      return;
+    }
+
+    setBackfillingAvatars(true);
+    let fetched = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const creator = targets[i];
+      setAvatarBackfillStatus(`Fetching avatar ${i + 1} of ${targets.length}: ${creator.name}…`);
+      const ok = await syncCreatorAvatar(creator);
+      if (ok) fetched += 1;
+
+      if (i < targets.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, AVATAR_BACKFILL_DELAY_MS));
+      }
+    }
+
+    setAvatarBackfillStatus(
+      `Fetched ${fetched} of ${targets.length} avatar${targets.length === 1 ? "" : "s"}.`
+    );
+    setBackfillingAvatars(false);
+    setTimeout(() => setAvatarBackfillStatus(null), 6000);
   };
 
   const handleAddCreator = (profile: {
@@ -532,9 +572,17 @@ export default function App() {
       <footer className="border-t border-stone-200/80 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <p className="text-[11px] text-stone-400">
-            {syncing ? "Syncing…" : `Signed in as ${session.user.email}`}
+            {avatarBackfillStatus ?? (syncing ? "Syncing…" : `Signed in as ${session.user.email}`)}
           </p>
           <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => void handleBackfillAvatars()}
+              disabled={backfillingAvatars}
+              className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-3 h-3 ${backfillingAvatars ? "animate-spin" : ""}`} />
+              {backfillingAvatars ? "Fetching avatars…" : "Fetch missing avatars"}
+            </button>
             <button
               onClick={handleExport}
               className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-700 transition-colors"
