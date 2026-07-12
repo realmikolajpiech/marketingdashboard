@@ -27,6 +27,7 @@ import {
 } from "./lib/database";
 import { loadAppDataOnce } from "./lib/initialLoad";
 import { useAuth } from "./lib/auth";
+import { avatarSourceKey, persistCreatorAvatar } from "./lib/avatarStorage";
 import { CREATOR_SORT_OPTIONS, CreatorSortKey, creatorHasPlatform, creatorMaxAvgViews, normalizeCreator, sortCreators, STATUS_OPTIONS } from "./utils";
 
 import StatsBar from "./components/StatsBar";
@@ -149,6 +150,20 @@ export default function App() {
     return { ...creator, moneySpent, videosPosted, totalViewsGenerated };
   });
 
+  const syncCreatorAvatar = async (creator: Creator) => {
+    const avatarUrl = await persistCreatorAvatar(creator.id, creator.platformProfiles);
+    if (!avatarUrl || avatarUrl === creator.avatarUrl) return;
+
+    setCreators((current) => current.map((c) => (c.id === creator.id ? { ...c, avatarUrl } : c)));
+    setSelectedCreator((current) => (current?.id === creator.id ? { ...current, avatarUrl } : current));
+
+    try {
+      await updateCreator({ ...creator, avatarUrl });
+    } catch {
+      // Best-effort background sync; avatar will retry on the next edit.
+    }
+  };
+
   const handleAddCreator = (profile: {
     name: string;
     platformProfiles: PlatformProfile[];
@@ -167,11 +182,12 @@ export default function App() {
     void runSynced(
       () => insertCreator(created),
       () => setCreators(previous)
-    );
+    ).then(() => void syncCreatorAvatar(created));
   };
 
   const handleUpdateCreator = (updated: Creator) => {
     const previous = creators;
+    const priorCreator = previous.find((c) => c.id === updated.id);
     setCreators(creators.map((c) => (c.id === updated.id ? updated : c)));
     if (selectedCreator?.id === updated.id) setSelectedCreator(updated);
     void runSynced(
@@ -182,7 +198,11 @@ export default function App() {
           setSelectedCreator(previous.find((c) => c.id === updated.id) ?? null);
         }
       }
-    );
+    ).then(() => {
+      const handleChanged =
+        !priorCreator || avatarSourceKey(priorCreator.platformProfiles) !== avatarSourceKey(updated.platformProfiles);
+      if (handleChanged) void syncCreatorAvatar(updated);
+    });
   };
 
   const handleDeleteCreator = (id: string) => {

@@ -315,14 +315,16 @@ export function creatorAvatarSrc(
   profiles: PlatformProfile[],
   storedUrl?: string
 ): string | undefined {
+  if (storedUrl) return storedUrl;
+
   const avatarPlatform = primaryAvatarPlatform(profiles.map((profile) => profile.platform));
-  if (!avatarPlatform) return storedUrl;
+  if (!avatarPlatform) return undefined;
 
   const profile = profiles.find((entry) => entry.platform === avatarPlatform);
-  if (!profile) return storedUrl;
+  if (!profile) return undefined;
 
   const username = normalizeHandle(profile.handle);
-  if (!username) return storedUrl;
+  if (!username) return undefined;
 
   const params = new URLSearchParams({ platform: avatarPlatform, handle: username });
   return `/api/avatar/image?${params}`;
