@@ -51,6 +51,7 @@ const CreatorCard: FC<CreatorCardProps> = ({ creator, onOpen }) => {
             <PlatformIcons profiles={creator.platformProfiles} size="sm" className="sm:hidden shrink-0" />
           </div>
           <p className="text-xs text-stone-500 truncate">{handlesLabel}</p>
+          {creator.notes && <p className="text-xs text-stone-400 truncate mt-0.5">{creator.notes}</p>}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 sm:hidden text-xs text-stone-500">
             <span className="tabular-nums font-mono">
               {viewsLabel === "—" ? "— avg views" : `${viewsLabel} avg views`}
