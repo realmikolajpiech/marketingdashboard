@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { fetchInstagramAvgViews, normalizeUsername } from "./server/instagram";
 import { ensureSupabaseSchema } from "./server/db-setup";
 
+
 dotenv.config();
 
 async function startServer() {
