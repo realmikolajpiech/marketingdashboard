@@ -13,8 +13,6 @@ interface InstagramMediaNode {
 }
 
 interface InstagramUser {
-  profile_pic_url_hd?: string;
-  profile_pic_url?: string;
   edge_owner_to_timeline_media?: { edges?: { node?: InstagramMediaNode }[] };
   edge_felix_video_timeline?: { edges?: { node?: InstagramMediaNode }[] };
 }
@@ -36,11 +34,6 @@ export async function fetchInstagramUser(username: string): Promise<InstagramUse
 
   const data = await response.json();
   return data?.data?.user ?? null;
-}
-
-export async function fetchInstagramAvatar(username: string): Promise<string | null> {
-  const user = await fetchInstagramUser(username);
-  return user?.profile_pic_url_hd || user?.profile_pic_url || null;
 }
 
 export type InstagramViewsErrorCode = "not_found" | "no_media" | "no_videos" | "no_views";

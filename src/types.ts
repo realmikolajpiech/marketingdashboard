@@ -2,7 +2,7 @@ export type CreatorStatus = 'Selected' | 'Contacted' | 'Followed Up Contact' | '
 
 export type Platform = 'TikTok' | 'Instagram' | 'YouTube';
 
-export const PLATFORMS: Platform[] = ['TikTok', 'Instagram', 'YouTube'];
+export const PLATFORMS: Platform[] = ['Instagram', 'TikTok', 'YouTube'];
 
 export interface PlatformProfile {
   platform: Platform;

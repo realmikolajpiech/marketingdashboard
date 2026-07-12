@@ -2,13 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
-import {
-  avatarProxyPath,
-  fetchProfileAvatar,
-  normalizeUsername,
-  proxyAvatarImage,
-} from "./server/avatar";
-import { fetchInstagramAvgViews } from "./server/instagram";
+import { fetchInstagramAvgViews, normalizeUsername } from "./server/instagram";
 import { ensureSupabaseSchema } from "./server/db-setup";
 
 dotenv.config();
@@ -27,69 +21,6 @@ async function startServer() {
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
-  });
-
-  app.get("/api/avatar", async (req, res) => {
-    const platform = String(req.query.platform || "");
-    const handle = String(req.query.handle || "");
-    const username = normalizeUsername(handle);
-
-    if (!username) {
-      return res.status(400).json({ error: "Handle is required" });
-    }
-
-    if (platform !== "Instagram" && platform !== "TikTok") {
-      return res.status(400).json({ error: "Only Instagram and TikTok are supported" });
-    }
-
-    try {
-      const avatarUrl = await fetchProfileAvatar(platform, username);
-
-      if (!avatarUrl) {
-        return res.status(404).json({
-          error:
-            platform === "TikTok"
-              ? `No TikTok profile found for @${username}`
-              : `No Instagram profile found for @${username}`,
-        });
-      }
-
-      return res.json({
-        avatarUrl: avatarProxyPath(platform, username),
-        platform,
-        username,
-      });
-    } catch {
-      return res.status(502).json({ error: "Could not fetch profile picture" });
-    }
-  });
-
-  app.get("/api/avatar/image", async (req, res) => {
-    const platform = String(req.query.platform || "");
-    const handle = String(req.query.handle || "");
-    const username = normalizeUsername(handle);
-
-    if (!username) {
-      return res.status(400).send("Handle is required");
-    }
-
-    if (platform !== "Instagram" && platform !== "TikTok") {
-      return res.status(400).send("Only Instagram and TikTok are supported");
-    }
-
-    try {
-      const result = await proxyAvatarImage(platform, username);
-
-      if (!result) {
-        return res.status(404).send("Profile picture not found");
-      }
-
-      res.setHeader("Content-Type", result.contentType);
-      res.setHeader("Cache-Control", "public, max-age=86400");
-      return res.send(result.buffer);
-    } catch {
-      return res.status(502).send("Could not fetch profile picture");
-    }
   });
 
   app.get("/api/instagram-views", async (req, res) => {

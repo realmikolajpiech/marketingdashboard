@@ -5,7 +5,6 @@ import {
   calcCPM,
   formatCompact,
   formatCurrency,
-  creatorAvatarSrc,
   formatCreatorHandles,
   formatPriceRange,
   formatViewsRange,
@@ -25,7 +24,6 @@ const CreatorCard: FC<CreatorCardProps> = ({ creator, onOpen }) => {
   const cpm = calcCPM(creator.moneySpent, creator.totalViewsGenerated);
   const showCpm = hasPaid && cpm > 0;
   const suggested = suggestedVideoPriceForProfiles(creator.platformProfiles);
-  const avatarSrc = creatorAvatarSrc(creator.platformProfiles, creator.avatarUrl);
   const handlesLabel = formatCreatorHandles(creator);
   const viewsLabel = formatViewsRange(creator.platformProfiles);
 
@@ -42,17 +40,9 @@ const CreatorCard: FC<CreatorCardProps> = ({ creator, onOpen }) => {
       }}
       className="w-full text-left bg-white rounded-xl ring-1 ring-stone-200/80 px-4 py-3.5 hover:ring-stone-300 hover:shadow-sm transition-all group flex items-center gap-3 sm:gap-4 cursor-pointer"
     >
-      {avatarSrc ? (
-        <img
-          src={avatarSrc}
-          alt={creator.name}
-          className="w-10 h-10 rounded-lg object-cover ring-1 ring-stone-200 shrink-0"
-        />
-      ) : (
-        <div className="w-10 h-10 rounded-lg bg-stone-100 text-stone-500 flex items-center justify-center text-xs font-semibold shrink-0">
-          {creator.name.slice(0, 2).toUpperCase()}
-        </div>
-      )}
+      <div className="w-10 h-10 rounded-lg bg-stone-100 text-stone-500 flex items-center justify-center text-xs font-semibold shrink-0">
+        {creator.name.slice(0, 2).toUpperCase()}
+      </div>
 
       <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 lg:gap-6">
         <div className="min-w-0 flex-1">

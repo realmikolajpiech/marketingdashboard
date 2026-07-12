@@ -1,7 +1,5 @@
 import { Platform, PlatformProfile } from "../types";
-import { useProfileAvatar } from "../hooks/useProfileAvatar";
 import AvgViewsCalculator from "./AvgViewsCalculator";
-import ProfileAvatarPreview from "./ProfileAvatarPreview";
 import InstagramViewsFetch from "./InstagramViewsFetch";
 import PlatformIcon from "./PlatformIcon";
 
@@ -16,12 +14,6 @@ export default function PlatformProfileEditor({
   onChange,
   inputClass,
 }: PlatformProfileEditorProps) {
-  const avatarPlatform =
-    profile.platform === "Instagram" || profile.platform === "TikTok"
-      ? profile.platform
-      : "";
-  const { avatarUrl, loading, error } = useProfileAvatar(avatarPlatform, profile.handle);
-
   const update = (patch: Partial<PlatformProfile>) => {
     onChange({ ...profile, ...patch });
   };
@@ -44,16 +36,6 @@ export default function PlatformProfileEditor({
           className={inputClass}
         />
       </div>
-
-      {(profile.platform === "Instagram" || profile.platform === "TikTok") && (
-        <ProfileAvatarPreview
-          avatarUrl={avatarUrl}
-          name={profile.handle}
-          loading={loading}
-          error={error}
-          platform={profile.platform}
-        />
-      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>

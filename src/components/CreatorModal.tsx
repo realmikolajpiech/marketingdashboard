@@ -66,7 +66,7 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}
-        className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl ring-1 ring-stone-200 max-h-[90dvh] overflow-y-auto"
+        className="relative w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-xl ring-1 ring-stone-200 max-h-[90dvh] overflow-y-auto"
       >
         <div className="sticky top-0 bg-white flex items-center justify-between px-5 py-4 border-b border-stone-100 z-10">
           <div>

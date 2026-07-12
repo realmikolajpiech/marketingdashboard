@@ -311,25 +311,6 @@ export function normalizeHandle(handle: string): string {
   return handle.trim().replace(/^@+/, "");
 }
 
-export function creatorAvatarSrc(
-  profiles: PlatformProfile[],
-  storedUrl?: string
-): string | undefined {
-  if (storedUrl) return storedUrl;
-
-  const avatarPlatform = primaryAvatarPlatform(profiles.map((profile) => profile.platform));
-  if (!avatarPlatform) return undefined;
-
-  const profile = profiles.find((entry) => entry.platform === avatarPlatform);
-  if (!profile) return undefined;
-
-  const username = normalizeHandle(profile.handle);
-  if (!username) return undefined;
-
-  const params = new URLSearchParams({ platform: avatarPlatform, handle: username });
-  return `/api/avatar/image?${params}`;
-}
-
 export function creatorProfileUrl(
   platform: Platform,
   handle: string

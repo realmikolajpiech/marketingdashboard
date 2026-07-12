@@ -15,7 +15,6 @@ import {
   formatCurrency,
   CREATOR_STATUS_OPTIONS,
   formatPriceRange,
-  creatorAvatarSrc,
   creatorProfileUrl,
   formatCreatorHandles,
   shortStatus,
@@ -62,7 +61,6 @@ export default function CreatorDetailDrawer({
   const rating = cpmLabel(cpm);
   const displayProfiles = editing ? platformProfiles : creator.platformProfiles;
   const suggested = suggestedVideoPriceForProfiles(displayProfiles);
-  const avatarSrc = creatorAvatarSrc(displayProfiles, creator.avatarUrl);
 
   const handlePlatformsChange = (platforms: PlatformProfile["platform"][]) => {
     setPlatformProfiles((current) => syncProfilesFromPlatforms(platforms, current));
@@ -109,17 +107,9 @@ export default function CreatorDetailDrawer({
       >
         <header className="px-5 py-4 border-b border-stone-100 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            {avatarSrc ? (
-              <img
-                src={avatarSrc}
-                alt={creator.name}
-                className="w-11 h-11 rounded-lg object-cover ring-1 ring-stone-200 shrink-0"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-sm font-semibold shrink-0">
-                {creator.name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <div className="w-11 h-11 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-sm font-semibold shrink-0">
+              {creator.name.slice(0, 2).toUpperCase()}
+            </div>
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-stone-900 truncate">{creator.name}</h2>
               <p className="text-sm text-stone-500 truncate">{formatCreatorHandles(creator)}</p>
