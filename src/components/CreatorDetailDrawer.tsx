@@ -6,8 +6,9 @@ import {
   ExternalLink,
   Pencil,
   Check,
+  Plus,
 } from "lucide-react";
-import { Creator, PaymentLog, CreatorStatus, PlatformProfile } from "../types";
+import { Creator, PaymentLog, CreatorStatus, NegotiationOffer, NegotiationOfferBy, PlatformProfile } from "../types";
 import {
   calcCPM,
   cpmLabel,
@@ -55,6 +56,27 @@ export default function CreatorDetailDrawer({
   );
   const [status, setStatus] = useState(creator.status);
   const [notes, setNotes] = useState(creator.notes);
+  const [offerAmount, setOfferAmount] = useState("");
+  const [offerBy, setOfferBy] = useState<NegotiationOfferBy>("creator");
+
+  const negotiationLog = creator.negotiationLog ?? [];
+
+  const addOffer = () => {
+    const amount = Number(offerAmount);
+    if (!amount || amount <= 0) return;
+    const offer: NegotiationOffer = {
+      id: `offer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      amount,
+      by: offerBy,
+      createdAt: new Date().toISOString(),
+    };
+    onUpdate({ ...creator, negotiationLog: [...negotiationLog, offer] });
+    setOfferAmount("");
+  };
+
+  const removeOffer = (id: string) => {
+    onUpdate({ ...creator, negotiationLog: negotiationLog.filter((o) => o.id !== id) });
+  };
 
   const creatorPayments = payments.filter((p) => p.creatorId === creator.id);
   const cpm = calcCPM(creator.moneySpent, creator.totalViewsGenerated);
@@ -315,6 +337,65 @@ export default function CreatorDetailDrawer({
                   <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{creator.notes}</p>
                 </div>
               )}
+
+              <div>
+                <p className="text-xs font-medium text-stone-500 dark:text-stone-400 mb-2">
+                  Negotiation {negotiationLog.length > 0 ? `(${negotiationLog.length})` : ""}
+                </p>
+
+                {negotiationLog.length > 0 && (
+                  <div className="space-y-1.5 mb-2.5">
+                    {negotiationLog.map((offer) => (
+                      <div
+                        key={offer.id}
+                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-stone-50 dark:bg-stone-800 group"
+                      >
+                        <div className="min-w-0">
+                          <span className="text-sm font-semibold text-stone-900 dark:text-stone-100 tabular-nums font-mono">
+                            {formatCurrency(offer.amount)}
+                          </span>
+                          <span className="text-xs text-stone-500 dark:text-stone-400 ml-1.5">
+                            {offer.by === "you" ? "your offer" : "their ask"} ·{" "}
+                            {new Date(offer.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => removeOffer(offer.id)}
+                          className="p-1 rounded text-stone-300 dark:text-stone-600 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-1.5">
+                  <select
+                    value={offerBy}
+                    onChange={(e) => setOfferBy(e.target.value as NegotiationOfferBy)}
+                    className="px-2 py-2 text-xs bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 shrink-0"
+                  >
+                    <option value="creator">They asked</option>
+                    <option value="you">You offered</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Amount ($)"
+                    value={offerAmount}
+                    onChange={(e) => setOfferAmount(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addOffer()}
+                    className="min-w-0 flex-1 px-3 py-2 text-sm bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 tabular-nums font-mono"
+                  />
+                  <button
+                    onClick={addOffer}
+                    className="shrink-0 p-2 text-white bg-teal-700 hover:bg-teal-800 rounded-lg transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-3">

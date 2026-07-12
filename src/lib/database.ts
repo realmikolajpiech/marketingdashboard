@@ -10,7 +10,14 @@ interface CreatorRow {
   status: Creator["status"];
   notes: string;
   avatar_url: string | null;
+  negotiation_log: Creator["negotiationLog"];
   created_at: string;
+}
+
+interface SettingsRow {
+  user_id: string;
+  budget: number;
+  updated_at: string;
 }
 
 interface PaymentRow {
@@ -46,6 +53,7 @@ function toCreator(row: CreatorRow): Creator {
     status: row.status,
     notes: row.notes,
     avatarUrl: row.avatar_url ?? undefined,
+    negotiationLog: row.negotiation_log ?? [],
     moneySpent: 0,
     videosPosted: 0,
     totalViewsGenerated: 0,
@@ -61,6 +69,7 @@ function fromCreator(creator: Creator, userId: string) {
     status: creator.status,
     notes: creator.notes,
     avatar_url: creator.avatarUrl ?? null,
+    negotiation_log: creator.negotiationLog ?? [],
   };
 }
 
@@ -185,7 +194,29 @@ export async function replaceAllData(creators: Creator[], payments: PaymentLog[]
   }
 }
 
-export async function loadTrailoData(): Promise<{ creators: Creator[]; payments: PaymentLog[] }> {
-  const [creators, payments] = await Promise.all([fetchCreators(), fetchPayments()]);
-  return { creators, payments };
+export async function fetchBudget(): Promise<number> {
+  const { data, error } = await supabase.from("settings").select("budget").maybeSingle();
+  if (error) throw new Error(formatDbError(error));
+  return (data as SettingsRow | null)?.budget ?? 0;
+}
+
+export async function updateBudget(budget: number): Promise<void> {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ user_id: userId, budget, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (error) throw new Error(formatDbError(error));
+}
+
+export async function loadTrailoData(): Promise<{
+  creators: Creator[];
+  payments: PaymentLog[];
+  budget: number;
+}> {
+  const [creators, payments, budget] = await Promise.all([
+    fetchCreators(),
+    fetchPayments(),
+    fetchBudget(),
+  ]);
+  return { creators, payments, budget };
 }

@@ -62,6 +62,29 @@ export function shortStatus(status: CreatorStatus): string {
   return STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
 }
 
+export function statusBarColor(status: CreatorStatus): string {
+  const map: Record<CreatorStatus, string> = {
+    Selected: "bg-stone-400 dark:bg-stone-500",
+    Contacted: "bg-sky-500 dark:bg-sky-400",
+    "Followed Up Contact": "bg-indigo-500 dark:bg-indigo-400",
+    Negotiating: "bg-amber-500 dark:bg-amber-400",
+    Active: "bg-teal-600 dark:bg-teal-400",
+    Completed: "bg-violet-500 dark:bg-violet-400",
+    Rejected: "bg-rose-400 dark:bg-rose-500",
+  };
+  return map[status];
+}
+
+export function hasResponded(status: CreatorStatus): boolean {
+  return status !== "Selected" && status !== "Contacted" && status !== "Followed Up Contact";
+}
+
+export function budgetHealth(pct: number): { className: string; barClassName: string } {
+  if (pct > 100) return { className: "text-rose-700 dark:text-rose-400", barClassName: "bg-rose-500 dark:bg-rose-500" };
+  if (pct >= 80) return { className: "text-amber-700 dark:text-amber-400", barClassName: "bg-amber-500 dark:bg-amber-500" };
+  return { className: "text-teal-700 dark:text-teal-400", barClassName: "bg-teal-600 dark:bg-teal-500" };
+}
+
 export const PLATFORM_CPM_BENCHMARKS: Record<
   Platform,
   { low: number; high: number }

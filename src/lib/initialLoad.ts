@@ -1,10 +1,10 @@
 import { Creator, PaymentLog } from "../types";
 
-let loadPromise: Promise<{ creators: Creator[]; payments: PaymentLog[] }> | null = null;
+let loadPromise: Promise<{ creators: Creator[]; payments: PaymentLog[]; budget: number }> | null = null;
 
 export function loadAppDataOnce(
-  loader: () => Promise<{ creators: Creator[]; payments: PaymentLog[] }>
-): Promise<{ creators: Creator[]; payments: PaymentLog[] }> {
+  loader: () => Promise<{ creators: Creator[]; payments: PaymentLog[]; budget: number }>
+): Promise<{ creators: Creator[]; payments: PaymentLog[]; budget: number }> {
   if (!loadPromise) {
     loadPromise = loader().catch((error) => {
       loadPromise = null;

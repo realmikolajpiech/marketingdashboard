@@ -11,6 +11,16 @@ export interface PlatformProfile {
   avgViews: number;
 }
 
+export type NegotiationOfferBy = "you" | "creator";
+
+export interface NegotiationOffer {
+  id: string;
+  amount: number;
+  by: NegotiationOfferBy;
+  note?: string;
+  createdAt: string;
+}
+
 export interface Creator {
   id: string;
   name: string;
@@ -21,6 +31,7 @@ export interface Creator {
   totalViewsGenerated: number;
   notes: string;
   avatarUrl?: string;
+  negotiationLog?: NegotiationOffer[];
 }
 
 export interface PaymentLog {

@@ -25,6 +25,7 @@ import {
   insertPayment,
   loadTrailoData,
   replaceAllData,
+  updateBudget,
   updateCreator,
 } from "./lib/database";
 import { loadAppDataOnce } from "./lib/initialLoad";
@@ -40,8 +41,9 @@ import CreatorDetailDrawer from "./components/CreatorDetailDrawer";
 import PaymentsView from "./components/PaymentsView";
 import DealCalculator from "./components/DealCalculator";
 import LoginPage from "./components/LoginPage";
+import AnalyticsView from "./components/AnalyticsView";
 
-type Tab = "creators" | "payments";
+type Tab = "creators" | "payments" | "analytics";
 
 const PLATFORMS = ["All", "TikTok", "Instagram", "YouTube"] as const;
 
@@ -50,6 +52,7 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
   const [creators, setCreators] = useState<Creator[]>([]);
   const [payments, setPayments] = useState<PaymentLog[]>([]);
+  const [budget, setBudget] = useState(0);
 
   const [tab, setTab] = useState<Tab>("creators");
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,6 +74,7 @@ export default function App() {
     if (!session) {
       setCreators([]);
       setPayments([]);
+      setBudget(0);
       setLoading(false);
       setLoadError(null);
       return;
@@ -83,9 +87,9 @@ export default function App() {
       setLoadError(null);
 
       try {
-        const { creators: loadedCreators, payments: loadedPayments } = await loadAppDataOnce(
+        const { creators: loadedCreators, payments: loadedPayments, budget: loadedBudget } = await loadAppDataOnce(
           async () => {
-            let { creators, payments } = await loadTrailoData();
+            let { creators, payments, budget } = await loadTrailoData();
 
             const localCreators = localStorage.getItem("trailo_clean_v1_creators");
             const localPayments = localStorage.getItem("trailo_clean_v1_payments");
@@ -109,13 +113,14 @@ export default function App() {
               payments = INITIAL_PAYMENTS;
             }
 
-            return { creators, payments };
+            return { creators, payments, budget };
           }
         );
 
         if (!cancelled) {
           setCreators(loadedCreators);
           setPayments(loadedPayments);
+          setBudget(loadedBudget);
         }
       } catch (error) {
         if (!cancelled) {
@@ -143,6 +148,15 @@ export default function App() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const handleUpdateBudget = (newBudget: number) => {
+    const previous = budget;
+    setBudget(newBudget);
+    void runSynced(
+      () => updateBudget(newBudget),
+      () => setBudget(previous)
+    );
   };
 
   const creatorsWithMetrics = creators.map((creator) => {
@@ -381,7 +395,7 @@ export default function App() {
         <StatsBar creators={creatorsWithMetrics} payments={payments} />
 
         <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg w-fit">
-          {(["creators", "payments"] as Tab[]).map((t) => (
+          {(["creators", "payments", "analytics"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -391,10 +405,12 @@ export default function App() {
                   : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
               }`}
             >
-              {t === "creators" ? "Creators" : "Payments"}
-              <span className="ml-1.5 text-xs text-stone-400 dark:text-stone-500 tabular-nums">
-                {t === "creators" ? creators.length : payments.length}
-              </span>
+              {t === "creators" ? "Creators" : t === "payments" ? "Payments" : "Analytics"}
+              {t !== "analytics" && (
+                <span className="ml-1.5 text-xs text-stone-400 dark:text-stone-500 tabular-nums">
+                  {t === "creators" ? creators.length : payments.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -513,8 +529,14 @@ export default function App() {
               </div>
             )}
           </div>
-        ) : (
+        ) : tab === "payments" ? (
           <PaymentsView payments={payments} onDelete={handleDeletePayment} />
+        ) : (
+          <AnalyticsView
+            creators={creatorsWithMetrics}
+            budget={budget}
+            onUpdateBudget={handleUpdateBudget}
+          />
         )}
           </>
         )}
