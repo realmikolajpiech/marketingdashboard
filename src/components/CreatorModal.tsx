@@ -1,9 +1,8 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { motion } from "motion/react";
 import { ChevronDown, Link2, X } from "lucide-react";
 import { CreatorStatus, PlatformProfile } from "../types";
 import { parseCreatorFromInput } from "../utils";
-import InstagramViewsFetch from "./InstagramViewsFetch";
 import PlatformIcon from "./PlatformIcon";
 
 interface CreatorModalProps {
@@ -17,7 +16,11 @@ interface CreatorModalProps {
 }
 
 export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const profileRef = useRef<HTMLInputElement>(null);
+  const followersRef = useRef<HTMLInputElement>(null);
+  const avgViewsRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+
   const [input, setInput] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [followersK, setFollowersK] = useState("");
@@ -27,8 +30,13 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
   const parsed = parseCreatorFromInput(input);
   const canSubmit = Boolean(parsed);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (parsed) {
+      setShowDetails(true);
+    }
+  }, [parsed?.platform, parsed?.handle]);
+
+  const addCreator = () => {
     if (!parsed) return;
 
     onAdd({
@@ -45,6 +53,31 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
       notes: notes.trim(),
     });
     onClose();
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    addCreator();
+  };
+
+  const focusNext = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>) => {
+    requestAnimationFrame(() => ref.current?.focus());
+  };
+
+  const handleFieldKeyDown = (
+    e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    nextRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>
+  ) => {
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      addCreator();
+      return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey && nextRef) {
+      e.preventDefault();
+      focusNext(nextRef);
+    }
   };
 
   const inputClass =
@@ -68,7 +101,9 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100 dark:border-stone-800">
           <div>
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">Add creator</h2>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Paste a profile link and hit enter</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+              Paste a link · Enter for next · Shift+Enter to add
+            </p>
           </div>
           <button
             type="button"
@@ -87,12 +122,24 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
             <div className="relative">
               <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
               <input
-                ref={inputRef}
+                ref={profileRef}
                 type="text"
                 autoFocus
                 placeholder="instagram.com/username or @username"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.shiftKey) {
+                    e.preventDefault();
+                    addCreator();
+                    return;
+                  }
+                  if (e.key === "Enter" && !e.shiftKey && parsed) {
+                    e.preventDefault();
+                    setShowDetails(true);
+                    requestAnimationFrame(() => focusNext(followersRef));
+                  }
+                }}
                 className={`${inputClass} pl-9`}
               />
             </div>
@@ -129,29 +176,26 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
                     Followers (K)
                   </label>
                   <input
+                    ref={followersRef}
                     type="number"
                     placeholder="45"
                     value={followersK}
                     onChange={(e) => setFollowersK(e.target.value)}
+                    onKeyDown={(e) => handleFieldKeyDown(e, avgViewsRef)}
                     className={`${inputClass} tabular-nums font-mono`}
                   />
                 </div>
                 <div>
-                  {parsed.platform === "Instagram" && (
-                    <InstagramViewsFetch
-                      handle={input}
-                      platform={parsed.platform}
-                      onApply={setAvgViews}
-                    />
-                  )}
                   <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
                     Avg views
                   </label>
                   <input
+                    ref={avgViewsRef}
                     type="number"
                     placeholder="120000"
                     value={avgViews || ""}
                     onChange={(e) => setAvgViews(Number(e.target.value) || 0)}
+                    onKeyDown={(e) => handleFieldKeyDown(e, notesRef)}
                     className={`${inputClass} tabular-nums font-mono`}
                   />
                 </div>
@@ -159,8 +203,15 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
               <div>
                 <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Notes</label>
                 <textarea
+                  ref={notesRef}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.shiftKey) {
+                      e.preventDefault();
+                      addCreator();
+                    }
+                  }}
                   rows={2}
                   placeholder="Rates, deliverables..."
                   className={`${inputClass} resize-none`}
