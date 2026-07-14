@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
@@ -7,6 +8,13 @@ import { ensureSupabaseSchema } from "./server/db-setup";
 
 
 dotenv.config();
+
+function getPublicConfig() {
+  return {
+    supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+    supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
+  };
+}
 
 async function startServer() {
   try {
@@ -19,6 +27,12 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
+
+  app.get("/runtime-config.js", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.type("application/javascript");
+    res.send(`window.__TRAILO_CONFIG__=${JSON.stringify(getPublicConfig())};`);
+  });
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -45,18 +59,22 @@ async function startServer() {
     }
   });
 
-  // Serve static assets / Vite middleware integration
-  if (process.env.NODE_ENV !== "production") {
+  const distPath = path.join(process.cwd(), "dist");
+  const distIndexPath = path.join(distPath, "index.html");
+  const useProduction =
+    process.env.NODE_ENV === "production" ||
+    (process.env.NODE_ENV !== "development" && fs.existsSync(distIndexPath));
+
+  if (!useProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      res.sendFile(distIndexPath);
     });
   }
 

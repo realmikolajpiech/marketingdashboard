@@ -1,6 +1,6 @@
 import { Creator, PaymentLog } from "../types";
 import { normalizeCreator } from "../utils";
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 
 interface CreatorRow {
   id: string;
@@ -36,7 +36,7 @@ async function requireUserId(): Promise<string> {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await getSupabase().auth.getUser();
 
   if (error || !user) {
     throw new Error("You must be signed in to access campaign data.");
@@ -109,7 +109,7 @@ function formatDbError(error: { message: string; code?: string }) {
 }
 
 export async function fetchCreators(): Promise<Creator[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("creators")
     .select("*")
     .order("created_at", { ascending: false });
@@ -119,7 +119,7 @@ export async function fetchCreators(): Promise<Creator[]> {
 }
 
 export async function fetchPayments(): Promise<PaymentLog[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("payments")
     .select("*")
     .order("created_at", { ascending: false });
@@ -130,7 +130,7 @@ export async function fetchPayments(): Promise<PaymentLog[]> {
 
 export async function insertCreator(creator: Creator): Promise<void> {
   const userId = await requireUserId();
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("creators")
     .upsert(fromCreator(creator, userId), { onConflict: "id" });
   if (error) throw new Error(formatDbError(error));
@@ -138,7 +138,7 @@ export async function insertCreator(creator: Creator): Promise<void> {
 
 export async function updateCreator(creator: Creator): Promise<void> {
   const userId = await requireUserId();
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("creators")
     .update(fromCreator(creator, userId))
     .eq("id", creator.id);
@@ -146,39 +146,39 @@ export async function updateCreator(creator: Creator): Promise<void> {
 }
 
 export async function deleteCreator(id: string): Promise<void> {
-  const { error } = await supabase.from("creators").delete().eq("id", id);
+  const { error } = await getSupabase().from("creators").delete().eq("id", id);
   if (error) throw new Error(formatDbError(error));
 }
 
 export async function insertPayment(payment: PaymentLog): Promise<void> {
   const userId = await requireUserId();
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("payments")
     .upsert(fromPayment(payment, userId), { onConflict: "id" });
   if (error) throw new Error(formatDbError(error));
 }
 
 export async function deletePayment(id: string): Promise<void> {
-  const { error } = await supabase.from("payments").delete().eq("id", id);
+  const { error } = await getSupabase().from("payments").delete().eq("id", id);
   if (error) throw new Error(formatDbError(error));
 }
 
 export async function replaceAllData(creators: Creator[], payments: PaymentLog[]): Promise<void> {
   const userId = await requireUserId();
 
-  const { error: paymentsDeleteError } = await supabase
+  const { error: paymentsDeleteError } = await getSupabase()
     .from("payments")
     .delete()
     .neq("id", "");
 
   if (paymentsDeleteError) throw new Error(formatDbError(paymentsDeleteError));
 
-  const { error: creatorsDeleteError } = await supabase.from("creators").delete().neq("id", "");
+  const { error: creatorsDeleteError } = await getSupabase().from("creators").delete().neq("id", "");
 
   if (creatorsDeleteError) throw new Error(formatDbError(creatorsDeleteError));
 
   if (creators.length > 0) {
-    const { error: creatorsInsertError } = await supabase
+    const { error: creatorsInsertError } = await getSupabase()
       .from("creators")
       .upsert(creators.map((creator) => fromCreator(creator, userId)), { onConflict: "id" });
 
@@ -186,7 +186,7 @@ export async function replaceAllData(creators: Creator[], payments: PaymentLog[]
   }
 
   if (payments.length > 0) {
-    const { error: paymentsInsertError } = await supabase
+    const { error: paymentsInsertError } = await getSupabase()
       .from("payments")
       .upsert(payments.map((payment) => fromPayment(payment, userId)), { onConflict: "id" });
 
