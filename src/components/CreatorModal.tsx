@@ -20,6 +20,7 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
   const followersRef = useRef<HTMLInputElement>(null);
   const avgViewsRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  const wasParsedRef = useRef(false);
 
   const [input, setInput] = useState("");
   const [showDetails, setShowDetails] = useState(false);
@@ -31,8 +32,19 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
   const canSubmit = Boolean(parsed);
 
   useEffect(() => {
-    if (parsed) {
-      setShowDetails(true);
+    if (!parsed) {
+      wasParsedRef.current = false;
+      return;
+    }
+
+    const justParsed = !wasParsedRef.current;
+    wasParsedRef.current = true;
+    setShowDetails(true);
+
+    if (justParsed) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => followersRef.current?.focus());
+      });
     }
   }, [parsed?.platform, parsed?.handle]);
 
