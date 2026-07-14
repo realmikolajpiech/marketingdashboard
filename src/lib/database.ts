@@ -195,14 +195,14 @@ export async function replaceAllData(creators: Creator[], payments: PaymentLog[]
 }
 
 export async function fetchBudget(): Promise<number> {
-  const { data, error } = await supabase.from("settings").select("budget").maybeSingle();
+  const { data, error } = await getSupabase().from("settings").select("budget").maybeSingle();
   if (error) throw new Error(formatDbError(error));
   return (data as SettingsRow | null)?.budget ?? 0;
 }
 
 export async function updateBudget(budget: number): Promise<void> {
   const userId = await requireUserId();
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("settings")
     .upsert({ user_id: userId, budget, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
   if (error) throw new Error(formatDbError(error));
