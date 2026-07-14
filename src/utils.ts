@@ -270,6 +270,44 @@ export function extractHandleFromInput(input: string, platform: Platform): strin
   return normalizeHandle(trimmed);
 }
 
+export interface ParsedCreatorInput {
+  platform: Platform;
+  handle: string;
+}
+
+function detectPlatformFromInput(input: string): Platform | null {
+  const trimmed = input.trim();
+  const looksLikeUrl =
+    /^https?:\/\//i.test(trimmed) ||
+    /^(www\.)?(instagram|tiktok|youtube)\.com\b/i.test(trimmed);
+
+  if (!looksLikeUrl) return null;
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (host === "instagram.com") return "Instagram";
+    if (host.includes("tiktok.com")) return "TikTok";
+    if (host.includes("youtube.com") || host === "youtu.be") return "YouTube";
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export function parseCreatorFromInput(input: string): ParsedCreatorInput | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  const platform = detectPlatformFromInput(trimmed) ?? "Instagram";
+  const handle = extractHandleFromInput(trimmed, platform);
+  if (!handle) return null;
+
+  return { platform, handle };
+}
+
 export function creatorHasPlatform(creator: Creator, platform: Platform | "All"): boolean {
   return platform === "All" || creator.platformProfiles.some((profile) => profile.platform === platform);
 }

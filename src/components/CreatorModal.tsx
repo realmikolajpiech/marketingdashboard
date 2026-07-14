@@ -1,13 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
-import { X } from "lucide-react";
-import { CreatorStatus, Platform, PlatformProfile } from "../types";
-import { CREATOR_STATUS_OPTIONS, extractHandleFromInput } from "../utils";
-import PlatformPicker from "./PlatformPicker";
-import PlatformProfileEditor, {
-  formatProfileHandle,
-  syncProfilesFromPlatforms,
-} from "./PlatformProfileEditor";
+import { ChevronDown, Link2, X } from "lucide-react";
+import { CreatorStatus, PlatformProfile } from "../types";
+import { parseCreatorFromInput } from "../utils";
+import InstagramViewsFetch from "./InstagramViewsFetch";
+import PlatformIcon from "./PlatformIcon";
 
 interface CreatorModalProps {
   onAdd: (creator: {
@@ -20,34 +17,32 @@ interface CreatorModalProps {
 }
 
 export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
-  const [name, setName] = useState("");
-  const [platformProfiles, setPlatformProfiles] = useState<PlatformProfile[]>([
-    { platform: "Instagram", handle: "", followers: 0, avgViews: 0 },
-  ]);
-  const [status, setStatus] = useState<CreatorStatus>("Selected");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [input, setInput] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
+  const [followersK, setFollowersK] = useState("");
+  const [avgViews, setAvgViews] = useState(0);
   const [notes, setNotes] = useState("");
 
-  const selectedPlatforms = platformProfiles.map((profile) => profile.platform);
-
-  const handlePlatformsChange = (platforms: Platform[]) => {
-    setPlatformProfiles((current) => syncProfilesFromPlatforms(platforms, current));
-  };
+  const parsed = parseCreatorFromInput(input);
+  const canSubmit = Boolean(parsed);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (platformProfiles.length === 0) return;
-    if (!platformProfiles.every((profile) => extractHandleFromInput(profile.handle, profile.platform))) {
-      return;
-    }
+    if (!parsed) return;
 
     onAdd({
-      name: name.trim(),
-      platformProfiles: platformProfiles.map((profile) => ({
-        ...profile,
-        handle: formatProfileHandle(profile.handle, profile.platform),
-      })),
-      status,
-      notes,
+      name: "",
+      platformProfiles: [
+        {
+          platform: parsed.platform,
+          handle: `@${parsed.handle}`,
+          followers: (Number(followersK) || 0) * 1000,
+          avgViews,
+        },
+      ],
+      status: "Selected",
+      notes: notes.trim(),
     });
     onClose();
   };
@@ -68,14 +63,15 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}
-        className="relative w-full sm:max-w-2xl bg-white dark:bg-stone-900 rounded-t-2xl sm:rounded-2xl shadow-xl ring-1 ring-stone-200 dark:ring-stone-800 max-h-[90dvh] overflow-y-auto"
+        className="relative w-full sm:max-w-md bg-white dark:bg-stone-900 rounded-t-2xl sm:rounded-2xl shadow-xl ring-1 ring-stone-200 dark:ring-stone-800"
       >
-        <div className="sticky top-0 bg-white dark:bg-stone-900 flex items-center justify-between px-5 py-4 border-b border-stone-100 dark:border-stone-800 z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100 dark:border-stone-800">
           <div>
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">Add creator</h2>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Add someone to your campaign pipeline</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Paste a profile link and hit enter</p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
           >
@@ -86,66 +82,92 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">
-              Name <span className="text-stone-400 dark:text-stone-500 font-normal">(optional)</span>
+              Profile URL or handle
             </label>
-            <input
-              type="text"
-              placeholder="Amara Sterling"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">Platforms</label>
-            <PlatformPicker value={selectedPlatforms} onChange={handlePlatformsChange} />
-          </div>
-
-          <div className="space-y-3">
-            {platformProfiles.map((profile) => (
-              <PlatformProfileEditor
-                key={profile.platform}
-                profile={profile}
-                onChange={(updated) =>
-                  setPlatformProfiles((current) =>
-                    current.map((entry) =>
-                      entry.platform === profile.platform ? updated : entry
-                    )
-                  )
-                }
-                inputClass={inputClass}
+            <div className="relative">
+              <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+              <input
+                ref={inputRef}
+                type="text"
+                autoFocus
+                placeholder="instagram.com/username or @username"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className={`${inputClass} pl-9`}
               />
-            ))}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as CreatorStatus)}
-              className={inputClass}
-            >
-              {CREATOR_STATUS_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {parsed && (
+            <div className="flex items-center gap-2.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 ring-1 ring-teal-200 dark:ring-teal-800 px-3.5 py-3">
+              <PlatformIcon platform={parsed.platform} size="sm" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">
+                  @{parsed.handle}
+                </p>
+                <p className="text-xs text-teal-700 dark:text-teal-400">{parsed.platform}</p>
+              </div>
+            </div>
+          )}
 
-          <div>
-            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">
-              Notes <span className="text-stone-400 dark:text-stone-500 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Rates, deliverables, contact info..."
-              className={`${inputClass} resize-none`}
+          <button
+            type="button"
+            onClick={() => setShowDetails((open) => !open)}
+            className="flex items-center gap-1.5 text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
+          >
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${showDetails ? "rotate-180" : ""}`}
             />
-          </div>
+            {showDetails ? "Hide details" : "Add followers, views, or notes"}
+          </button>
+
+          {showDetails && parsed && (
+            <div className="space-y-3 rounded-xl ring-1 ring-stone-200 dark:ring-stone-700 bg-stone-50/50 dark:bg-stone-800/50 p-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
+                    Followers (K)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="45"
+                    value={followersK}
+                    onChange={(e) => setFollowersK(e.target.value)}
+                    className={`${inputClass} tabular-nums font-mono`}
+                  />
+                </div>
+                <div>
+                  {parsed.platform === "Instagram" && (
+                    <InstagramViewsFetch
+                      handle={input}
+                      platform={parsed.platform}
+                      onApply={setAvgViews}
+                    />
+                  )}
+                  <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
+                    Avg views
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="120000"
+                    value={avgViews || ""}
+                    onChange={(e) => setAvgViews(Number(e.target.value) || 0)}
+                    className={`${inputClass} tabular-nums font-mono`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Rates, deliverables..."
+                  className={`${inputClass} resize-none`}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <button
@@ -157,7 +179,8 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-teal-700 hover:bg-teal-800 rounded-lg transition-colors"
+              disabled={!canSubmit}
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
               Add creator
             </button>
