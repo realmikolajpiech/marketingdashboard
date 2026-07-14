@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { CreatorStatus, Platform, PlatformProfile } from "../types";
-import { CREATOR_STATUS_OPTIONS } from "../utils";
+import { CREATOR_STATUS_OPTIONS, extractHandleFromInput } from "../utils";
 import PlatformPicker from "./PlatformPicker";
 import PlatformProfileEditor, {
   formatProfileHandle,
@@ -35,14 +35,16 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!name || platformProfiles.length === 0) return;
-    if (!platformProfiles.every((profile) => profile.handle.trim())) return;
+    if (platformProfiles.length === 0) return;
+    if (!platformProfiles.every((profile) => extractHandleFromInput(profile.handle, profile.platform))) {
+      return;
+    }
 
     onAdd({
-      name,
+      name: name.trim(),
       platformProfiles: platformProfiles.map((profile) => ({
         ...profile,
-        handle: formatProfileHandle(profile.handle),
+        handle: formatProfileHandle(profile.handle, profile.platform),
       })),
       status,
       notes,
@@ -83,10 +85,11 @@ export default function CreatorModal({ onAdd, onClose }: CreatorModalProps) {
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">Name</label>
+            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">
+              Name <span className="text-stone-400 dark:text-stone-500 font-normal">(optional)</span>
+            </label>
             <input
               type="text"
-              required
               placeholder="Amara Sterling"
               value={name}
               onChange={(e) => setName(e.target.value)}

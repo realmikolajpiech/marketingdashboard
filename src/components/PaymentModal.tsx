@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { Creator } from "../types";
-import { formatCreatorHandles } from "../utils";
+import { creatorDisplayName, formatCreatorHandles } from "../utils";
 
 interface PaymentModalProps {
   creators: Creator[];
@@ -86,7 +86,7 @@ export default function PaymentModal({
               <option value="">Select a creator</option>
               {creators.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({formatCreatorHandles(c)})
+                  {creatorDisplayName(c)} ({formatCreatorHandles(c)})
                 </option>
               ))}
             </select>

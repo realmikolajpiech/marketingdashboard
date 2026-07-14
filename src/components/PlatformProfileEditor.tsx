@@ -1,4 +1,5 @@
 import { Platform, PlatformProfile } from "../types";
+import { extractHandleFromInput } from "../utils";
 import AvgViewsCalculator from "./AvgViewsCalculator";
 import InstagramViewsFetch from "./InstagramViewsFetch";
 import PlatformIcon from "./PlatformIcon";
@@ -30,9 +31,21 @@ export default function PlatformProfileEditor({
         <input
           type="text"
           required
-          placeholder={profile.platform === "YouTube" ? "channelname" : "username"}
+          placeholder={
+            profile.platform === "YouTube"
+              ? "@channelname or profile URL"
+              : profile.platform === "Instagram"
+                ? "@username or profile URL"
+                : "@username or profile URL"
+          }
           value={profile.handle}
           onChange={(e) => update({ handle: e.target.value })}
+          onBlur={() => {
+            const formatted = formatProfileHandle(profile.handle, profile.platform);
+            if (formatted !== profile.handle) {
+              update({ handle: formatted });
+            }
+          }}
           className={inputClass}
         />
       </div>
@@ -90,8 +103,8 @@ export function syncProfilesFromPlatforms(
   });
 }
 
-export function formatProfileHandle(handle: string): string {
-  const trimmed = handle.trim();
-  if (!trimmed) return "";
-  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+export function formatProfileHandle(handle: string, platform: Platform): string {
+  const username = extractHandleFromInput(handle, platform);
+  if (!username) return "";
+  return `@${username}`;
 }

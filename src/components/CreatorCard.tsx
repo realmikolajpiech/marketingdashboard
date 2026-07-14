@@ -5,6 +5,8 @@ import {
   calcCPM,
   formatCompact,
   formatCurrency,
+  creatorDisplayName,
+  creatorInitials,
   formatCreatorHandles,
   formatPriceRange,
   formatViewsRange,
@@ -24,7 +26,9 @@ const CreatorCard: FC<CreatorCardProps> = ({ creator, onOpen }) => {
   const cpm = calcCPM(creator.moneySpent, creator.totalViewsGenerated);
   const showCpm = hasPaid && cpm > 0;
   const suggested = suggestedVideoPriceForProfiles(creator.platformProfiles);
+  const displayName = creatorDisplayName(creator);
   const handlesLabel = formatCreatorHandles(creator);
+  const showHandles = Boolean(creator.name.trim() && handlesLabel);
   const viewsLabel = formatViewsRange(creator.platformProfiles);
 
   return (
@@ -41,16 +45,18 @@ const CreatorCard: FC<CreatorCardProps> = ({ creator, onOpen }) => {
       className="w-full text-left bg-white dark:bg-stone-900 rounded-xl ring-1 ring-stone-200/80 dark:ring-stone-800 px-4 py-3.5 hover:ring-stone-300 dark:hover:ring-stone-700 hover:shadow-sm transition-all group flex items-center gap-3 sm:gap-4 cursor-pointer"
     >
       <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 flex items-center justify-center text-xs font-semibold shrink-0">
-        {creator.name.slice(0, 2).toUpperCase()}
+        {creatorInitials(creator)}
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 lg:gap-6">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">{creator.name}</p>
+            <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">{displayName}</p>
             <PlatformIcons profiles={creator.platformProfiles} size="sm" className="sm:hidden shrink-0" />
           </div>
-          <p className="text-xs text-stone-500 dark:text-stone-400 truncate">{handlesLabel}</p>
+          {showHandles && (
+            <p className="text-xs text-stone-500 dark:text-stone-400 truncate">{handlesLabel}</p>
+          )}
           {creator.notes && <p className="text-xs text-stone-400 dark:text-stone-500 truncate mt-0.5">{creator.notes}</p>}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 sm:hidden text-xs text-stone-500 dark:text-stone-400">
             <span className="tabular-nums font-mono">

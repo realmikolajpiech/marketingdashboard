@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pencil, Check, X, Wallet, TrendingUp, Handshake } from "lucide-react";
 import { Creator } from "../types";
 import {
+  creatorDisplayName,
   formatCurrency,
   CREATOR_STATUS_OPTIONS,
   statusBarColor,
@@ -161,7 +162,7 @@ export default function AnalyticsView({ creators, budget, onUpdateBudget }: Anal
                 const latest = offers[offers.length - 1];
                 return (
                   <div key={c.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="text-stone-700 dark:text-stone-300 truncate">{c.name}</span>
+                    <span className="text-stone-700 dark:text-stone-300 truncate">{creatorDisplayName(c)}</span>
                     <span className="text-xs font-medium text-stone-500 dark:text-stone-400 tabular-nums font-mono shrink-0">
                       {latest
                         ? `${formatCurrency(latest.amount)} (${latest.by === "you" ? "you" : "them"})`

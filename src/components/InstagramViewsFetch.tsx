@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Platform } from "../types";
+import { extractHandleFromInput } from "../utils";
 
 interface InstagramViewsFetchProps {
   handle: string;
@@ -22,7 +23,7 @@ export default function InstagramViewsFetch({
   if (platform !== "Instagram") return null;
 
   const fetchViews = async () => {
-    const username = handle.trim().replace(/^@+/, "");
+    const username = extractHandleFromInput(handle, platform);
     if (!username) {
       setFeedback({ type: "error", text: "Enter a handle first" });
       return;

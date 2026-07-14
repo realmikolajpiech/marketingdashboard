@@ -17,6 +17,8 @@ import {
   CREATOR_STATUS_OPTIONS,
   formatPriceRange,
   creatorProfileUrl,
+  creatorDisplayName,
+  creatorInitials,
   formatCreatorHandles,
   shortStatus,
   statusStyle,
@@ -91,10 +93,10 @@ export default function CreatorDetailDrawer({
   const handleSave = () => {
     onUpdate({
       ...creator,
-      name,
+      name: name.trim(),
       platformProfiles: platformProfiles.map((profile) => ({
         ...profile,
-        handle: formatProfileHandle(profile.handle),
+        handle: formatProfileHandle(profile.handle, profile.platform),
       })),
       status,
       notes,
@@ -130,11 +132,15 @@ export default function CreatorDetailDrawer({
         <header className="px-5 py-4 border-b border-stone-100 dark:border-stone-800 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 flex items-center justify-center text-sm font-semibold shrink-0">
-              {creator.name.slice(0, 2).toUpperCase()}
+              {creatorInitials(creator)}
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 truncate">{creator.name}</h2>
-              <p className="text-sm text-stone-500 dark:text-stone-400 truncate">{formatCreatorHandles(creator)}</p>
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 truncate">
+                {creatorDisplayName(creator)}
+              </h2>
+              {creator.name.trim() && (
+                <p className="text-sm text-stone-500 dark:text-stone-400 truncate">{formatCreatorHandles(creator)}</p>
+              )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <PlatformIcons profiles={displayProfiles} size="sm" />
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ring-1 ${statusStyle(creator.status)}`}>
@@ -161,11 +167,13 @@ export default function CreatorDetailDrawer({
               className="p-5 space-y-4"
             >
               <div>
-                <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Name</label>
+                <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
+                  Name <span className="text-stone-400 dark:text-stone-500 font-normal">(optional)</span>
+                </label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  required
+                  placeholder="Leave blank to use handle"
                   className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                 />
               </div>
@@ -469,7 +477,7 @@ export default function CreatorDetailDrawer({
             </button>
             <button
               onClick={() => {
-                if (confirm(`Delete ${creator.name} and all their payments?`)) {
+                if (confirm(`Delete ${creatorDisplayName(creator)} and all their payments?`)) {
                   onDelete(creator.id);
                 }
               }}

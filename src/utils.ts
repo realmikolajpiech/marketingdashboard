@@ -201,6 +201,75 @@ export function formatCreatorHandles(creator: Creator): string {
   return [...new Set(handles)].join(" · ");
 }
 
+export function creatorDisplayName(creator: Creator): string {
+  const name = creator.name.trim();
+  if (name) return name;
+  const firstHandle = creator.platformProfiles.find((profile) => profile.handle.trim());
+  if (firstHandle) return normalizeHandle(firstHandle.handle);
+  return "Unnamed";
+}
+
+export function creatorInitials(creator: Creator): string {
+  const display = creatorDisplayName(creator);
+  if (display === "Unnamed") return "?";
+  return display.slice(0, 2).toUpperCase();
+}
+
+const RESERVED_IG_PATHS = new Set([
+  "p",
+  "reel",
+  "reels",
+  "stories",
+  "explore",
+  "accounts",
+  "direct",
+  "tv",
+]);
+
+export function extractHandleFromInput(input: string, platform: Platform): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  const looksLikeUrl =
+    /^https?:\/\//i.test(trimmed) ||
+    /^(www\.)?(instagram|tiktok|youtube)\.com\b/i.test(trimmed);
+
+  if (looksLikeUrl) {
+    try {
+      const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const host = url.hostname.replace(/^www\./, "");
+
+      if (platform === "Instagram" && host === "instagram.com" && pathParts[0]) {
+        const segment = pathParts[0].toLowerCase();
+        if (!RESERVED_IG_PATHS.has(segment)) {
+          return pathParts[0];
+        }
+      }
+
+      if (platform === "TikTok" && host.includes("tiktok.com")) {
+        const atPart = pathParts.find((part) => part.startsWith("@"));
+        if (atPart) return atPart.replace(/^@+/, "");
+        if (pathParts[0] && pathParts[0] !== "video") {
+          return pathParts[0].replace(/^@+/, "");
+        }
+      }
+
+      if (
+        platform === "YouTube" &&
+        (host.includes("youtube.com") || host === "youtu.be")
+      ) {
+        const atPart = pathParts.find((part) => part.startsWith("@"));
+        if (atPart) return atPart.replace(/^@+/, "");
+      }
+    } catch {
+      // Fall through to plain handle parsing.
+    }
+  }
+
+  return normalizeHandle(trimmed);
+}
+
 export function creatorHasPlatform(creator: Creator, platform: Platform | "All"): boolean {
   return platform === "All" || creator.platformProfiles.some((profile) => profile.platform === platform);
 }
@@ -294,9 +363,9 @@ export function sortCreators<T extends Creator>(creators: T[], sortKey: CreatorS
 
   switch (sortKey) {
     case "name-asc":
-      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      return sorted.sort((a, b) => creatorDisplayName(a).localeCompare(creatorDisplayName(b)));
     case "name-desc":
-      return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      return sorted.sort((a, b) => creatorDisplayName(b).localeCompare(creatorDisplayName(a)));
     case "views-desc":
       return sorted.sort((a, b) => creatorMaxAvgViews(b) - creatorMaxAvgViews(a));
     case "views-asc":
@@ -331,7 +400,7 @@ export function sortCreators<T extends Creator>(creators: T[], sortKey: CreatorS
 }
 
 export function normalizeHandle(handle: string): string {
-  return handle.trim().replace(/^@+/, "");
+  return handle.trim().replace(/^@+/, "").replace(/\/+$/, "");
 }
 
 export function creatorProfileUrl(

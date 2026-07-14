@@ -31,7 +31,7 @@ import {
 import { loadAppDataOnce } from "./lib/initialLoad";
 import { useAuth } from "./lib/auth";
 import { useTheme } from "./lib/theme";
-import { CREATOR_SORT_OPTIONS, CreatorSortKey, creatorHasPlatform, creatorMaxAvgViews, normalizeCreator, sortCreators, STATUS_OPTIONS } from "./utils";
+import { CREATOR_SORT_OPTIONS, CreatorSortKey, creatorDisplayName, creatorHasPlatform, creatorMaxAvgViews, normalizeCreator, sortCreators, STATUS_OPTIONS } from "./utils";
 
 import StatsBar from "./components/StatsBar";
 import CreatorCard from "./components/CreatorCard";
@@ -229,7 +229,7 @@ export default function App() {
     if (!matched) return;
     const logged: PaymentLog = {
       id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      creatorName: matched.name,
+      creatorName: creatorDisplayName(matched),
       ...data,
     };
     const previous = payments;

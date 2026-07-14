@@ -4,7 +4,29 @@ const USER_AGENT =
 const IG_APP_ID = "936619743392459";
 
 export function normalizeUsername(handle: string): string {
-  return handle.trim().replace(/^@+/, "");
+  const trimmed = handle.trim();
+  if (!trimmed) return "";
+
+  const looksLikeUrl =
+    /^https?:\/\//i.test(trimmed) ||
+    /^(www\.)?instagram\.com\b/i.test(trimmed);
+
+  if (looksLikeUrl) {
+    try {
+      const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const host = url.hostname.replace(/^www\./, "");
+      const reserved = new Set(["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv"]);
+
+      if (host === "instagram.com" && pathParts[0] && !reserved.has(pathParts[0].toLowerCase())) {
+        return pathParts[0];
+      }
+    } catch {
+      // Fall through to plain handle parsing.
+    }
+  }
+
+  return trimmed.replace(/^@+/, "").replace(/\/+$/, "");
 }
 
 interface InstagramMediaNode {
